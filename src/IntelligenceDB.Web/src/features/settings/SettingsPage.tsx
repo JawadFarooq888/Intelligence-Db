@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Input
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { TwoFactorCard } from "./TwoFactorCard";
+import { AgentsCard } from "./AgentsCard";
 import { UsersCard } from "./UsersCard";
 
 export function SettingsPage() {
@@ -16,7 +17,7 @@ export function SettingsPage() {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Your account and portal users.</p>
+        <p className="text-sm text-muted-foreground">Your account, portal users and on-premises agents.</p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -40,6 +41,7 @@ export function SettingsPage() {
       </div>
 
       {hasRole("Admin") && <UsersCard />}
+      {hasRole("Admin") && <AgentsCard />}
     </div>
   );
 }

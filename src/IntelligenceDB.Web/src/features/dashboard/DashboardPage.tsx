@@ -3,6 +3,7 @@ import { AlertTriangle, Cpu, MemoryStick, Plus, RefreshCw, Timer } from "lucide-
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { EnvironmentBadge, PlatformBadge, StatusDot } from "@/components/badges";
+import { HealthBadge } from "@/components/monitoring";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, Skeleton } from "@/components/ui/primitives";
 import { InfoTip } from "@/components/ui/tooltip";
@@ -73,8 +74,8 @@ export function DashboardPage() {
         <div className="mb-3 flex items-center gap-1.5">
           <h2 className="font-semibold">Servers</h2>
           <InfoTip>
-            Servers with problems are shown first. The 0-100 health score (CPU, memory, waits, backups, jobs, disk, CHECKDB) is
-            added in Phase 2 when the collector starts storing metrics.
+            Servers with problems are shown first. The 0-100 health score starts at 100 and loses points for problems: high CPU,
+            memory pressure, missing backups, low disk space, CHECKDB overdue, blocking. Hover a score to see why.
           </InfoTip>
         </div>
 
@@ -160,13 +161,19 @@ function ServerCard({ server: s }: { server: ServerCardDto }) {
 
   return (
     <Card className={cn("flex flex-col", s.isEnabled && s.status !== "Online" && s.status !== "Unknown" && "border-destructive/50")}>
-      <div className="flex items-start gap-2 p-4 pb-2">
-        <StatusDot status={s.status} enabled={s.isEnabled} />
-        <div className="min-w-0 flex-1 -mt-1">
-          <Link to={`/servers/${s.id}`} className="block truncate font-semibold hover:underline">
-            {s.displayName}
-          </Link>
-          <p className="truncate text-xs text-muted-foreground">{s.host}</p>
+      <div className="flex items-start gap-3 p-4 pb-2">
+        <HealthBadge score={s.isEnabled ? s.healthScore : null} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <StatusDot status={s.status} enabled={s.isEnabled} />
+            <Link to={`/servers/${s.id}`} className="block truncate font-semibold hover:underline">
+              {s.displayName}
+            </Link>
+          </div>
+          <p className="truncate text-xs text-muted-foreground">
+            {s.host}
+            {s.agentName && ` · via ${s.agentName}`}
+          </p>
         </div>
         <EnvironmentBadge environment={s.environment} />
         <PlatformBadge platform={s.platform} />

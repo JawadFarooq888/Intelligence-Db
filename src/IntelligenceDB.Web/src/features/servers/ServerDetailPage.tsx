@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, FileCode2, Pencil, RefreshCw } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { CapabilityRow, EnvironmentBadge, PlatformBadge, StatusBadge } from "@/components/badges";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,19 @@ import type { ServerDetailDto, TestConnectionResultDto } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { LoginScriptsDialog } from "./LoginScriptsDialog";
 import { ServerFormDialog } from "./ServerFormDialog";
+import { ConfigurationTab } from "./tabs/ConfigurationTab";
+import { OverviewTab } from "./tabs/OverviewTab";
+import { PerformanceTab } from "./tabs/PerformanceTab";
+import { ServerDatabasesTab } from "./tabs/ServerDatabasesTab";
+import { HealthBadge } from "@/components/monitoring";
+
+const tabs = [
+  { id: "overview", label: "Overview" },
+  { id: "performance", label: "Performance" },
+  { id: "databases", label: "Databases & backups" },
+  { id: "configuration", label: "Configuration" },
+  { id: "setup", label: "Connection & features" },
+];
 
 export function ServerDetailPage() {
   const id = Number(useParams().id);
@@ -21,6 +34,13 @@ export function ServerDetailPage() {
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [scriptsOpen, setScriptsOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") ?? "overview";
+  const setTab = (t: string) => setParams((p) => {
+    const next = new URLSearchParams(p);
+    next.set("tab", t);
+    return next;
+  }, { replace: true });
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["server", id],
@@ -59,12 +79,14 @@ export function ServerDetailPage() {
       <BackLink />
 
       <div className="flex flex-wrap items-start gap-3">
+        <HealthBadge score={s.healthScore} size="lg" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold">{s.displayName}</h1>
             <StatusBadge status={s.lastStatus} enabled={s.isEnabled} />
             <PlatformBadge platform={s.effectivePlatform} />
             <EnvironmentBadge environment={s.environment} />
+            {s.agentName && <Badge variant="outline">via agent {s.agentName}</Badge>}
           </div>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
             {s.host}
@@ -118,7 +140,27 @@ export function ServerDetailPage() {
         </Card>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="flex gap-1 overflow-x-auto border-b">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm cursor-pointer",
+              tab === t.id ? "border-primary font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && <OverviewTab serverId={id} onOpenTab={setTab} />}
+      {tab === "performance" && <PerformanceTab serverId={id} />}
+      {tab === "databases" && <ServerDatabasesTab serverId={id} />}
+      {tab === "configuration" && <ConfigurationTab serverId={id} />}
+      {tab === "setup" && (
+        <>      <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Server</CardTitle>
@@ -241,6 +283,8 @@ export function ServerDetailPage() {
           </CardContent>
         </Card>
       </div>
+        </>
+      )}
 
       <ServerFormDialog open={editOpen} onOpenChange={setEditOpen} existing={data} />
       <LoginScriptsDialog open={scriptsOpen} onOpenChange={setScriptsOpen} platform={s.effectivePlatform} />

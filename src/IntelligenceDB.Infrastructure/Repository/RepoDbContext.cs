@@ -1,4 +1,6 @@
 using IntelligenceDB.Application.Abstractions;
+using IntelligenceDB.Domain.Agents;
+using IntelligenceDB.Domain.Monitoring;
 using IntelligenceDB.Domain.Audit;
 using IntelligenceDB.Domain.Servers;
 using IntelligenceDB.Infrastructure.Identity;
@@ -23,6 +25,19 @@ public class RepoDbContext(DbContextOptions<RepoDbContext> options)
     public DbSet<ServerInfo> ServerInfos => Set<ServerInfo>();
     public DbSet<ServerCapability> ServerCapabilities => Set<ServerCapability>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+    public DbSet<Agent> Agents => Set<Agent>();
+    public DbSet<AgentCommand> AgentCommands => Set<AgentCommand>();
+    public DbSet<Database> Databases => Set<Database>();
+    public DbSet<DatabaseFile> DatabaseFiles => Set<DatabaseFile>();
+    public DbSet<ServerConfigSetting> ServerConfigSettings => Set<ServerConfigSetting>();
+    public DbSet<ServerHealth> ServerHealth => Set<ServerHealth>();
+    public DbSet<CollectionRun> CollectionRuns => Set<CollectionRun>();
+    public DbSet<ServerMetric> ServerMetrics => Set<ServerMetric>();
+    public DbSet<WaitStat> WaitStats => Set<WaitStat>();
+    public DbSet<FileIoStat> FileIoStats => Set<FileIoStat>();
+    public DbSet<VolumeStat> VolumeStats => Set<VolumeStat>();
+    public DbSet<DatabaseSizeSample> DatabaseSizeSamples => Set<DatabaseSizeSample>();
+    public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();
     public DbSet<UserServerGroup> UserServerGroups => Set<UserServerGroup>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AppLogEntry> AppLog => Set<AppLogEntry>();

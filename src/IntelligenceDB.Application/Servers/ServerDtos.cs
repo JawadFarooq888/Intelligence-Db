@@ -22,6 +22,10 @@ public sealed class ServerUpsertRequest
     public PlatformType DeclaredPlatform { get; init; } = PlatformType.Unknown;
     public ServerEnvironment Environment { get; init; } = ServerEnvironment.Production;
     public int? GroupId { get; init; }
+
+    /// <summary>Agent that reaches the server from inside its network; null = connect directly from the portal.</summary>
+    public Guid? AgentId { get; init; }
+
     public List<string> Tags { get; init; } = [];
     public bool IsEnabled { get; init; } = true;
     public bool Encrypt { get; init; } = true;
@@ -64,7 +68,10 @@ public sealed record ServerSummaryDto(
     string? LastError,
     string? VersionLabel,
     string? Edition,
-    bool HasAdminLogin);
+    bool HasAdminLogin,
+    Guid? AgentId,
+    string? AgentName,
+    int? HealthScore);
 
 public sealed record ServerInfoDto(
     string ProductVersion,

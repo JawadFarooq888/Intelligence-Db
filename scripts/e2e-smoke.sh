@@ -82,6 +82,30 @@ server2=$(curl -fs "${H[@]}" "${AUTH[@]}" -X PUT "$API/api/servers/$SERVER_ID" -
 [ "$(echo "$server2" | jq -r '.server.lastStatus')" = Online ] || fail "update lost the stored password"
 ok "renamed without re-entering the password, still Online"
 
+echo "== Collector (Worker) stores metrics, databases, backups and a health score"
+for i in $(seq 1 40); do
+  ov=$(curl -fs "${AUTH[@]}" "$API/api/servers/$SERVER_ID/overview" || true)
+  if echo "$ov" | jq -e '.latest != null and .databases.total > 0 and .health != null and (.settings | length) > 0' >/dev/null 2>&1; then break; fi
+  sleep 5
+  [ "$i" = 40 ] && fail "worker did not collect data: $ov"
+done
+ok "overview has metrics, $(echo "$ov" | jq '.databases.total') databases, $(echo "$ov" | jq '.settings | length') settings, health $(echo "$ov" | jq '.health.score')"
+echo "$ov" | jq -e '.configAdvice | map(.code) | index("CFG_MAXMEM_DEFAULT")' >/dev/null || fail "config advice missing: $(echo "$ov" | jq -c '.configAdvice')"
+ok "best-practice advice: max server memory not set"
+echo "$ov" | jq -e '[.collectors[] | select(.source == "worker")] | length >= 5' >/dev/null || fail "collector status: $(echo "$ov" | jq -c '.collectors')"
+ok "collector status per collector (source: worker)"
+perf=$(curl -fs "${AUTH[@]}" "$API/api/servers/$SERVER_ID/performance?hours=1") || fail "performance endpoint"
+echo "$perf" | jq -e '.series | length >= 1' >/dev/null || fail "no metric series: $perf"
+ok "performance series available"
+dbs=$(curl -fs "${AUTH[@]}" "$API/api/servers/$SERVER_ID/databases") || fail "server databases"
+MASTER_ID=$(echo "$dbs" | jq -r '.[] | select(.name == "master") | .id')
+[ -n "$MASTER_ID" ] && [ "$MASTER_ID" != null ] || fail "master not listed: $dbs"
+detail=$(curl -fs "${AUTH[@]}" "$API/api/databases/$MASTER_ID") || fail "database detail"
+echo "$detail" | jq -e '(.files | length) >= 2' >/dev/null || fail "files missing: $detail"
+echo "$detail" | jq -e '.advice | map(.code) | index("DB_NO_FULL_BACKUP")' >/dev/null || fail "missing-backup advice: $(echo "$detail" | jq -c '.advice')"
+ok "database detail: files and 'no full backup' advice for master"
+curl -fs "${AUTH[@]}" "$API/api/search?q=maste" | jq -e 'map(.kind) | index("database")' >/dev/null || fail "database search"
+ok "global search finds databases"
 echo "== Unreachable server does not break anything"
 bad=$(jq -n '{displayName:"E2E-DOWN", host:"127.0.0.1", port:1, declaredPlatform:"OnPremises", connectTimeoutSeconds:5,
   trustServerCertificate:true, monitoring:{authType:"SqlLogin", userName:"x", secret:"y"}}')
@@ -114,6 +138,38 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "${VAUTH[@]}" "$API/api/users")
 [ "$code" = 403 ] || fail "viewer users returned $code"
 ok "viewer cannot delete servers or manage users (403)"
 
+echo "== Agent: register, run, add a server through it"
+created=$(curl -fs "${H[@]}" "${AUTH[@]}" -X POST "$API/api/agents" -d '{"name":"e2e-agent"}') || fail "create agent"
+AGENT_ID=$(echo "$created" | jq -r '.agent.id'); AGENT_KEY=$(echo "$created" | jq -r '.key')
+[[ "$AGENT_KEY" == idbk_* ]] || fail "agent key: $created"
+ok "agent created (key shown once)"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" -H "X-Agent-Id: $AGENT_ID" -H "X-Agent-Key: wrong" "$API/api/agent/v1/heartbeat" -d '{}')
+[ "$code" = 401 ] || fail "wrong agent key returned $code"
+ok "wrong agent key rejected (401)"
+Agent__PortalUrl="$API" Agent__AllowInsecureHttp=true Agent__AgentId="$AGENT_ID" Agent__AgentKey="$AGENT_KEY" \
+  nohup dotnet run --project src/IntelligenceDB.Agent -c Release --no-build > agent.log 2>&1 &
+AGENT_PID=$!
+for i in $(seq 1 30); do
+  curl -fs "${AUTH[@]}" "$API/api/agents" | jq -e --arg id "$AGENT_ID" '.[] | select(.id == $id) | .isOnline' >/dev/null && break
+  sleep 3; [ "$i" = 30 ] && fail "agent never came online"
+done
+ok "agent online"
+abody=$(echo "$body" | jq --arg aid "$AGENT_ID" '.displayName = "E2E-VIA-AGENT" | .groupId = null | .agentId = $aid')
+aserver=$(curl -fs "${H[@]}" "${AUTH[@]}" -X POST "$API/api/servers" -d "$abody") || fail "create server via agent"
+[ "$(echo "$aserver" | jq -r '.server.lastStatus')" = Online ] || fail "agent probe: $(echo "$aserver" | jq -r '.server.lastError')"
+ASERVER_ID=$(echo "$aserver" | jq -r '.server.id')
+echo "$aserver" | jq -e '.server.agentName == "e2e-agent"' >/dev/null || fail "agent name missing"
+ok "server added through the agent and Online (connection test ran inside the agent)"
+for i in $(seq 1 40); do
+  aov=$(curl -fs "${AUTH[@]}" "$API/api/servers/$ASERVER_ID/overview" || true)
+  if echo "$aov" | jq -e '.databases.total > 0 and ([.collectors[] | select(.source == "agent:e2e-agent")] | length) >= 3' >/dev/null 2>&1; then break; fi
+  sleep 5; [ "$i" = 40 ] && fail "agent did not deliver data: $aov"
+done
+ok "agent delivered collected data ($(echo "$aov" | jq '.databases.total') databases)"
+code=$(curl -s -o /dev/null -w '%{http_code}' "${AUTH[@]}" -X DELETE "$API/api/agents/$AGENT_ID")
+[ "$code" = 409 ] || fail "deleting an agent that still has servers returned $code"
+ok "agent with servers cannot be deleted"
+kill $AGENT_PID 2>/dev/null || true
 echo "== Delete"
 code=$(curl -s -o /dev/null -w '%{http_code}' "${AUTH[@]}" -X DELETE "$API/api/servers/$SERVER_ID")
 [ "$code" = 204 ] || fail "delete returned $code"

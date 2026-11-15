@@ -2,7 +2,7 @@ using IntelligenceDB.Application.Abstractions;
 using IntelligenceDB.Domain.Servers;
 using Microsoft.Data.SqlClient;
 
-namespace IntelligenceDB.Infrastructure.Targets;
+namespace IntelligenceDB.Targets;
 
 public enum TargetSessionMode
 {

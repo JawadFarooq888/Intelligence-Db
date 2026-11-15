@@ -172,4 +172,4 @@ export const modules: ModuleInfo[] = [
   },
 ];
 
-export const CURRENT_PHASE = 1;
+export const CURRENT_PHASE = 2;

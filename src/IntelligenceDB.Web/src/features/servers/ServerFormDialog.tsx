@@ -10,6 +10,7 @@ import { InfoTip } from "@/components/ui/tooltip";
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { authTypeLabels, environmentLabels, platformLabels } from "@/lib/format";
 import type {
+  AgentDto,
   AuthType,
   CredentialDto,
   CredentialInput,
@@ -39,6 +40,7 @@ interface FormState {
   declaredPlatform: PlatformType;
   environment: ServerEnvironment;
   groupId: string;
+  agentId: string;
   tags: string;
   isEnabled: boolean;
   encrypt: boolean;
@@ -75,6 +77,7 @@ function initialState(existing?: ServerDetailDto): FormState {
       declaredPlatform: "OnPremises",
       environment: "Production",
       groupId: "",
+      agentId: "",
       tags: "",
       isEnabled: true,
       encrypt: true,
@@ -97,6 +100,7 @@ function initialState(existing?: ServerDetailDto): FormState {
     declaredPlatform: s.declaredPlatform,
     environment: s.environment,
     groupId: s.groupId?.toString() ?? "",
+    agentId: s.agentId ?? "",
     tags: s.tags.join(", "),
     isEnabled: s.isEnabled,
     encrypt: existing.encrypt,
@@ -135,6 +139,7 @@ function toRequest(f: FormState, existing?: ServerDetailDto): ServerUpsertReques
     declaredPlatform: f.declaredPlatform,
     environment: f.environment,
     groupId: toNumber(f.groupId, null),
+    agentId: f.agentId || null,
     tags: f.tags
       .split(",")
       .map((t) => t.trim())
@@ -195,6 +200,10 @@ function ServerForm({
   const { data: groups = [] } = useQuery({
     queryKey: ["server-groups"],
     queryFn: () => api<ServerGroupDto[]>("/server-groups"),
+  });
+  const { data: agents = [] } = useQuery({
+    queryKey: ["agents"],
+    queryFn: () => api<AgentDto[]>("/agents"),
   });
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
@@ -259,6 +268,30 @@ function ServerForm({
       {fieldError && <p className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">Please fix the highlighted fields.</p>}
 
       <Section title="Connection">
+        <Field
+          label={
+            <>
+              Connect via{" "}
+              <InfoTip>
+                "Directly" means the portal connects to the server itself (cloud servers, or servers in the portal's network). Choose
+                an agent for servers inside a network the portal cannot reach, such as an office or data centre.
+              </InfoTip>
+            </>
+          }
+          htmlFor="agent"
+          error={err("agentId")}
+          hint={agents.length === 0 ? "Add agents in Settings → Agents to monitor servers inside other networks." : undefined}
+          className="sm:col-span-4"
+        >
+          <Select id="agent" value={form.agentId} onChange={(e) => set("agentId", e.target.value)}>
+            <option value="">Directly from the portal</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id} disabled={!a.isEnabled}>
+                Agent: {a.name} {a.isOnline ? "(online)" : "(offline)"}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <Field label="Display name" htmlFor="displayName" error={err("displayName")} className="sm:col-span-2">
           <Input id="displayName" required value={form.displayName} onChange={(e) => set("displayName", e.target.value)} placeholder="PROD-SQL-01" />
         </Field>

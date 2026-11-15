@@ -1,7 +1,7 @@
 using IntelligenceDB.Application.Abstractions;
 using IntelligenceDB.Application.Servers;
 using IntelligenceDB.Domain.Servers;
-using IntelligenceDB.Infrastructure.Targets;
+using IntelligenceDB.Targets;
 using Microsoft.Data.SqlClient;
 
 namespace IntelligenceDB.UnitTests.Targets;

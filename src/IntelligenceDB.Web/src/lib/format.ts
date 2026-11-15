@@ -105,3 +105,32 @@ export function downloadCsv(fileName: string, headers: string[], rows: (string |
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+/** 512 MB, 1.5 GB, 2.1 TB */
+export function formatMb(mb: number | null | undefined): string {
+  if (mb == null) return "-";
+  if (mb >= 1024 * 1024) return `${(mb / 1024 / 1024).toFixed(1)} TB`;
+  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
+  return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
+}
+
+export function formatBytes(bytes: number | null | undefined): string {
+  if (bytes == null) return "-";
+  return formatMb(bytes / 1048576);
+}
+
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+}
+
+export const backupTypeLabels: Record<string, string> = {
+  D: "Full",
+  I: "Differential",
+  L: "Log",
+  F: "File",
+  G: "Diff file",
+  P: "Partial",
+  Q: "Diff partial",
+};

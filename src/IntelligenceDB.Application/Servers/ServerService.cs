@@ -16,6 +16,7 @@ public sealed class ServerService(
     ISecretProtector secrets,
     TargetSpecBuilder specs,
     IServerProbe probe,
+    IAgentProbeDispatcher agentProbe,
     ICurrentUser user,
     IAuditWriter audit,
     TimeProvider clock,
@@ -32,6 +33,8 @@ public sealed class ServerService(
             .Include(s => s.Group)
             .Include(s => s.Tags)
             .Include(s => s.Info)
+            .Include(s => s.Agent)
+            .Include(s => s.Health)
             .OrderBy(s => s.DisplayName)
             .AsSplitQuery()
             .ToListAsync(ct);
@@ -53,6 +56,7 @@ public sealed class ServerService(
 
         var scope = await user.GetScopeAsync(ct);
         await EnsureGroupAllowedAsync(request.GroupId, scope, ct);
+        await EnsureAgentUsableAsync(request.AgentId, ct);
         await EnsureNameUniqueAsync(request.DisplayName.Trim(), exceptId: null, ct);
 
         var now = clock.GetUtcNow().UtcDateTime;
@@ -97,6 +101,7 @@ public sealed class ServerService(
         }
 
         await EnsureGroupAllowedAsync(request.GroupId, scope, ct);
+        await EnsureAgentUsableAsync(request.AgentId, ct);
         await EnsureNameUniqueAsync(request.DisplayName.Trim(), exceptId: id, ct);
 
         var now = clock.GetUtcNow().UtcDateTime;
@@ -214,8 +219,11 @@ public sealed class ServerService(
             }
         }
 
-        var result = await probe.ProbeAsync(monitoringSpec, adminSpec, ct);
-        var (platform, caps) = Evaluate(result, request.DeclaredPlatform, adminConfigured);
+        if (request.AgentId is { } agentForTest) await EnsureAgentUsableAsync(agentForTest, ct);
+        var result = request.AgentId is { } viaAgent
+            ? await agentProbe.ProbeAsync(viaAgent, monitoringSpec, adminSpec, ct)
+            : await probe.ProbeAsync(monitoringSpec, adminSpec, ct);
+        var (platform, caps) = ProbeResultApplier.Evaluate(result, request.DeclaredPlatform, adminConfigured);
 
         await audit.WriteAsync(new AuditRecord(
             "Server.TestUnsaved", existingId, request.DisplayName,
@@ -265,7 +273,7 @@ public sealed class ServerService(
         var now = clock.GetUtcNow().UtcDateTime;
         foreach (var (server, result) in results)
         {
-            Apply(server, result, now);
+            ProbeResultApplier.Apply(server, result, now);
         }
 
         await db.SaveChangesAsync(ct);
@@ -277,7 +285,7 @@ public sealed class ServerService(
     private async Task<TestConnectionResultDto> ProbeAndApplyAsync(Server server, CancellationToken ct)
     {
         var result = await RunProbeAsync(server, ct);
-        var (platform, caps) = Apply(server, result, clock.GetUtcNow().UtcDateTime);
+        var (platform, caps) = ProbeResultApplier.Apply(server, result, clock.GetUtcNow().UtcDateTime);
         await db.SaveChangesAsync(ct);
         return ServerMapper.ToTestDto(result, server.DeclaredPlatform, platform, caps);
     }
@@ -299,78 +307,10 @@ public sealed class ServerService(
                 "The stored password could not be decrypted (the data protection keys may have changed). Edit the server and enter the password again.", 0);
         }
 
-        return await probe.ProbeAsync(monitoringSpec, adminSpec, ct);
-    }
-
-    /// <summary>Copies a probe result onto the server entity (status, info, platform, capabilities).</summary>
-    private static (PlatformType? Platform, IReadOnlyList<CapabilityResult> Capabilities) Apply(Server server, ProbeResult result, DateTime now)
-    {
-        server.LastCheckedUtc = now;
-        server.LastStatus = result.Status;
-        server.LastError = result.Success ? null : Truncate(result.Error, 2000);
-
-        var (platform, caps) = Evaluate(result, server.DeclaredPlatform, server.AdminCredential is not null);
-        if (platform is null || result.Info is null)
-        {
-            // Keep the last known info/capabilities; the status already shows the failure.
-            return (null, []);
-        }
-
-        server.DetectedPlatform = platform.Value;
-
-        var info = server.Info ??= new ServerInfo { ServerId = server.Id };
-        var snap = result.Info;
-        info.ProductVersion = snap.ProductVersion;
-        info.MajorVersion = snap.MajorVersion;
-        info.ProductLevel = snap.ProductLevel;
-        info.ProductUpdateLevel = snap.ProductUpdateLevel;
-        info.Edition = snap.Edition;
-        info.EngineEdition = snap.EngineEdition;
-        info.HostPlatform = snap.HostPlatform;
-        info.CpuCount = snap.CpuCount;
-        info.PhysicalMemoryMb = snap.PhysicalMemoryMb;
-        info.SqlStartTimeUtc = snap.SqlStartTimeUtc;
-        info.Collation = snap.Collation;
-        info.ServerName = snap.ServerName;
-        info.IsSysadmin = snap.IsSysadmin;
-        info.PermissionsJson = JsonSerializer.Serialize(result.Permissions);
-        info.DetectedUtc = now;
-
-        // Update in place (rather than delete + insert) so EF never tracks two rows with the same key.
-        var existing = server.Capabilities.ToDictionary(c => c.CapabilityKey, StringComparer.Ordinal);
-        foreach (var cap in caps)
-        {
-            if (!existing.Remove(cap.Key, out var row))
-            {
-                row = new ServerCapability { ServerId = server.Id, CapabilityKey = cap.Key };
-                server.Capabilities.Add(row);
-            }
-
-            row.IsSupported = cap.IsSupported;
-            row.Reason = Truncate(cap.Reason, 1000);
-            row.Alternative = Truncate(cap.Alternative, 1000);
-            row.DetectedUtc = now;
-        }
-
-        foreach (var stale in existing.Values)
-        {
-            server.Capabilities.Remove(stale);
-        }
-
-        return (platform, caps);
-    }
-
-    private static (PlatformType? Platform, IReadOnlyList<CapabilityResult> Capabilities) Evaluate(
-        ProbeResult result, PlatformType declared, bool adminConfigured)
-    {
-        if (!result.Success || result.Facts is null)
-        {
-            return (null, []);
-        }
-
-        var platform = PlatformDetector.Detect(result.Facts, declared);
-        var admin = new AdminProbeOutcome(adminConfigured, result.AdminFacts, result.AdminError);
-        return (platform, CapabilityEvaluator.Evaluate(platform, result.Facts, admin));
+        // Servers inside a customer network are tested by their agent; the rest directly from here.
+        return server.AgentId is { } agentId
+            ? await agentProbe.ProbeAsync(agentId, monitoringSpec, adminSpec, ct)
+            : await probe.ProbeAsync(monitoringSpec, adminSpec, ct);
     }
 
     private async Task<Server> LoadAsync(int id, bool tracked, AccessScope scope, CancellationToken ct)
@@ -382,6 +322,8 @@ public sealed class ServerService(
             .Include(s => s.Capabilities)
             .Include(s => s.MonitoringCredential)
             .Include(s => s.AdminCredential)
+            .Include(s => s.Agent)
+            .Include(s => s.Health)
             .AsSplitQuery();
 
         var server = await (tracked ? query : query.AsNoTracking()).FirstOrDefaultAsync(s => s.Id == id, ct);
@@ -423,6 +365,18 @@ public sealed class ServerService(
         }
     }
 
+    private async Task EnsureAgentUsableAsync(Guid? agentId, CancellationToken ct)
+    {
+        if (agentId is null) return;
+        bool ok = await db.Agents.AnyAsync(a => a.Id == agentId && a.IsEnabled, ct);
+        if (!ok)
+        {
+            var e = new ValidationErrors();
+            e.Add("agentId", "The selected agent does not exist or is disabled.");
+            e.ThrowIfAny();
+        }
+    }
+
     private async Task EnsureNameUniqueAsync(string name, int? exceptId, CancellationToken ct)
     {
         bool taken = await db.Servers.AnyAsync(s => s.DisplayName == name && (exceptId == null || s.Id != exceptId), ct);
@@ -442,6 +396,7 @@ public sealed class ServerService(
         s.DeclaredPlatform = r.DeclaredPlatform;
         s.Environment = r.Environment;
         s.GroupId = r.GroupId;
+        s.AgentId = r.AgentId;
         s.IsEnabled = r.IsEnabled;
         s.Encrypt = r.Encrypt;
         s.TrustServerCertificate = r.TrustServerCertificate;

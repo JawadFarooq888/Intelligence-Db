@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <!-- Central collector: runs next to the portal and monitors servers the portal can reach directly
+       (cloud servers, servers in the same network). Servers behind an agent are skipped. -->
+  <PropertyGroup>
+    <RootNamespace>IntelligenceDB.Worker</RootNamespace>
+    <UserSecretsId>intelligencedb-worker</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IntelligenceDB.Infrastructure\IntelligenceDB.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Quartz.Extensions.Hosting" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
+  </ItemGroup>
+</Project>

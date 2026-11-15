@@ -1,7 +1,7 @@
 using IntelligenceDB.Application.Abstractions;
 using IntelligenceDB.Application.Capabilities;
 using IntelligenceDB.Domain.Servers;
-using IntelligenceDB.Infrastructure.Targets;
+using IntelligenceDB.Targets;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IntelligenceDB.IntegrationTests;

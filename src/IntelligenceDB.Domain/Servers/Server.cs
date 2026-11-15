@@ -23,6 +23,10 @@ public class Server
     public int? GroupId { get; set; }
     public ServerGroup? Group { get; set; }
 
+    /// <summary>Agent that reaches this server from inside its network. Null = the portal connects directly.</summary>
+    public Guid? AgentId { get; set; }
+    public Agents.Agent? Agent { get; set; }
+
     public int MonitoringCredentialId { get; set; }
     public Credential MonitoringCredential { get; set; } = null!;
 
@@ -47,6 +51,7 @@ public class Server
     public List<ServerTag> Tags { get; set; } = [];
     public ServerInfo? Info { get; set; }
     public List<ServerCapability> Capabilities { get; set; } = [];
+    public ServerHealth? Health { get; set; }
 
     /// <summary>The platform features are evaluated against: detected if known, otherwise declared.</summary>
     public PlatformType EffectivePlatform =>

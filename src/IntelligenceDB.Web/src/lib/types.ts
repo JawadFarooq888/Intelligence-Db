@@ -65,6 +65,7 @@ export interface ServerUpsertRequest {
   declaredPlatform: PlatformType;
   environment: ServerEnvironment;
   groupId: number | null;
+  agentId: string | null;
   tags: string[];
   isEnabled: boolean;
   encrypt: boolean;
@@ -107,6 +108,9 @@ export interface ServerSummaryDto {
   versionLabel: string | null;
   edition: string | null;
   hasAdminLogin: boolean;
+  agentId: string | null;
+  agentName: string | null;
+  healthScore: number | null;
 }
 
 export interface ServerInfoDto {
@@ -182,6 +186,8 @@ export interface ServerCardDto {
   cpuCount: number | null;
   physicalMemoryMb: number | null;
   sqlStartTimeUtc: string | null;
+  healthScore: number | null;
+  agentName: string | null;
   issues: string[];
 }
 
@@ -195,7 +201,7 @@ export interface DashboardDto {
 }
 
 export interface SearchHitDto {
-  kind: "server" | "group";
+  kind: "server" | "group" | "database";
   id: number;
   title: string;
   subtitle: string | null;
@@ -223,4 +229,200 @@ export interface TwoFactorStatusDto {
 export interface TwoFactorSetupDto {
   sharedKey: string;
   authenticatorUri: string;
+}
+
+// ---------------- Phase 2: monitoring ----------------
+
+export type AdviceSeverity = "Info" | "Warning" | "Critical";
+
+export interface AdviceItem {
+  severity: AdviceSeverity;
+  code: string;
+  title: string;
+  explanation: string;
+  current: string | null;
+  recommended: string | null;
+  target: string | null;
+}
+
+export interface HealthDeduction {
+  rule: string;
+  points: number;
+  message: string;
+}
+
+export interface HealthDto {
+  score: number;
+  deductions: HealthDeduction[];
+  calculatedUtc: string;
+}
+
+export interface MetricPoint {
+  time: string;
+  sqlCpuPct: number | null;
+  otherCpuPct: number | null;
+  pageLifeExpectancy: number | null;
+  memoryGrantsPending: number | null;
+  totalServerMemoryMb: number | null;
+  targetServerMemoryMb: number | null;
+  batchRequestsPerSec: number | null;
+  userConnections: number | null;
+  blockedSessions: number | null;
+}
+
+export interface ConfigSettingDto {
+  name: string;
+  value: number;
+  valueInUse: number;
+  isAdvanced: boolean;
+  isDynamic: boolean;
+  description: string | null;
+  pendingRestart: boolean;
+}
+
+export interface VolumeDto {
+  mountPoint: string;
+  label: string | null;
+  totalMb: number;
+  freeMb: number;
+  freePct: number;
+}
+
+export interface CollectorStatusDto {
+  collector: string;
+  lastRunUtc: string;
+  success: boolean;
+  error: string | null;
+  durationMs: number;
+  source: string;
+}
+
+export interface ServerOverviewDto {
+  health: HealthDto | null;
+  latest: MetricPoint | null;
+  configAdvice: AdviceItem[];
+  settings: ConfigSettingDto[];
+  volumes: VolumeDto[];
+  databases: { total: number; online: number; withCritical: number; withWarning: number; totalDataMb: number; totalLogMb: number };
+  collectors: CollectorStatusDto[];
+  volumesSupported: boolean;
+}
+
+export interface WaitRowDto {
+  waitType: string;
+  category: string;
+  explanation: string;
+  waitTimeMs: number;
+  signalWaitMs: number;
+  waitingTasks: number;
+  avgMsPerWait: number;
+  percent: number;
+}
+
+export interface FileLatencyDto {
+  databaseName: string;
+  fileId: number;
+  reads: number;
+  writes: number;
+  avgReadMs: number;
+  avgWriteMs: number;
+  mbRead: number;
+  mbWritten: number;
+}
+
+export interface PerformanceDto {
+  hours: number;
+  bucketMinutes: number;
+  series: MetricPoint[];
+  waits: WaitRowDto[];
+  files: FileLatencyDto[];
+}
+
+export interface DatabaseRowDto {
+  id: number;
+  serverId: number;
+  serverName: string;
+  name: string;
+  state: string;
+  recoveryModel: string;
+  compatibilityLevel: number;
+  owner: string | null;
+  isReadOnly: boolean;
+  dataSizeMb: number | null;
+  dataUsedMb: number | null;
+  logSizeMb: number | null;
+  logUsedMb: number | null;
+  vlfCount: number | null;
+  logReuseWait: string | null;
+  lastFullBackupUtc: string | null;
+  lastDiffBackupUtc: string | null;
+  lastLogBackupUtc: string | null;
+  lastGoodCheckDbUtc: string | null;
+  checkDbNever: boolean;
+  criticalCount: number;
+  warningCount: number;
+  infoCount: number;
+  lastSeenUtc: string;
+  isDropped: boolean;
+  backupHistoryAvailable: boolean;
+}
+
+export interface DatabaseFileDto {
+  fileId: number;
+  logicalName: string;
+  physicalName: string | null;
+  typeDesc: string;
+  sizeMb: number;
+  usedMb: number | null;
+  maxSizeMb: number | null;
+  isPercentGrowth: boolean;
+  growthValue: number;
+  volumeMountPoint: string | null;
+}
+
+export interface SizePointDto {
+  day: string;
+  dataSizeMb: number;
+  dataUsedMb: number | null;
+  logSizeMb: number;
+  logUsedMb: number | null;
+}
+
+export interface BackupRowDto {
+  id: number;
+  backupType: string;
+  startUtc: string;
+  finishUtc: string;
+  durationSeconds: number;
+  sizeBytes: number;
+  compressedBytes: number | null;
+  isCopyOnly: boolean;
+  physicalDevice: string | null;
+}
+
+export interface DatabaseDetailDto {
+  database: DatabaseRowDto;
+  files: DatabaseFileDto[];
+  advice: AdviceItem[];
+  sizeHistory: SizePointDto[];
+  backups: BackupRowDto[];
+}
+
+export interface AgentDto {
+  id: string;
+  name: string;
+  isEnabled: boolean;
+  isOnline: boolean;
+  createdUtc: string;
+  lastSeenUtc: string | null;
+  version: string | null;
+  machineName: string | null;
+  lastIp: string | null;
+  keyPrefix: string;
+  serverCount: number;
+}
+
+export interface AgentCreatedDto {
+  agent: AgentDto;
+  key: string;
 }

@@ -1,5 +1,6 @@
 using IntelligenceDB.Application.Abstractions;
 using IntelligenceDB.Application.Capabilities;
+using IntelligenceDB.Application.Monitoring;
 using IntelligenceDB.Application.Servers;
 using IntelligenceDB.Domain.Servers;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,8 @@ public sealed record ServerCardDto(
     int? CpuCount,
     long? PhysicalMemoryMb,
     DateTime? SqlStartTimeUtc,
+    int? HealthScore,
+    string? AgentName,
     IReadOnlyList<string> Issues);
 
 public sealed record DashboardDto(
@@ -34,7 +37,7 @@ public sealed record DashboardDto(
 
 /// <summary>
 /// Phase 1 dashboard: reachability, version and capability problems per server.
-/// The 0-100 health score is added in Phase 2 when the collector stores metrics.
+/// Includes the 0-100 health score calculated by the collector.
 /// </summary>
 public sealed class DashboardService(IRepoDbContext db, ICurrentUser user)
 {
@@ -54,6 +57,8 @@ public sealed class DashboardService(IRepoDbContext db, ICurrentUser user)
             .Include(s => s.Group)
             .Include(s => s.Info)
             .Include(s => s.Capabilities)
+            .Include(s => s.Health)
+            .Include(s => s.Agent)
             .OrderBy(s => s.DisplayName)
             .AsSplitQuery()
             .ToListAsync(ct);
@@ -87,6 +92,14 @@ public sealed class DashboardService(IRepoDbContext db, ICurrentUser user)
             issues.AddRange(s.Capabilities
                 .Where(c => !c.IsSupported && CardCapabilities.Contains(c.CapabilityKey) && c.Reason is not null)
                 .Select(c => c.Reason!));
+
+            // Reasons the health score lost points (backups, disk, CPU, ...), biggest first.
+            if (s.Health is not null)
+            {
+                issues.InsertRange(0, HealthService.ParseBreakdown(s.Health.BreakdownJson)
+                    .OrderByDescending(d => d.Points)
+                    .Select(d => d.Message));
+            }
         }
 
         return new ServerCardDto(
@@ -105,6 +118,8 @@ public sealed class DashboardService(IRepoDbContext db, ICurrentUser user)
             s.Info?.CpuCount,
             s.Info?.PhysicalMemoryMb,
             s.Info?.SqlStartTimeUtc,
+            s.Health?.Score,
+            s.Agent?.Name,
             issues);
     }
 }

@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\IntelligenceDB.Application\IntelligenceDB.Application.csproj" />
+    <ProjectReference Include="..\IntelligenceDB.Targets\IntelligenceDB.Targets.csproj" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -12,7 +13,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
-    <PackageReference Include="Dapper" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="IntelligenceDB.UnitTests" />

@@ -2,11 +2,16 @@ using IntelligenceDB.Application.Abstractions;
 using IntelligenceDB.Domain.Servers;
 using Microsoft.Data.SqlClient;
 
-namespace IntelligenceDB.Infrastructure.Targets;
+namespace IntelligenceDB.Targets;
 
 /// <summary>Turns connection errors into plain-English advice. The original message is kept for DBAs.</summary>
 internal static class ConnectionErrors
 {
+    /// <summary>Login problems are AuthFailed; everything else (network, timeout, DNS, TLS) is Unreachable.</summary>
+    public static ConnectionStatus StatusOf(Exception ex) => ex is SqlException { Number: 18456 or 18452 or 18470 or 18487 or 18488 or 4060 }
+        ? ConnectionStatus.AuthFailed
+        : ConnectionStatus.Unreachable;
+
     public static string Describe(Exception ex, TargetConnectionSpec spec)
     {
         string advice = ex is SqlException sql ? DescribeSql(sql, spec) : DescribeOther(ex);

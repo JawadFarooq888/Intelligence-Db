@@ -30,6 +30,10 @@ internal sealed class ServerConfiguration : IEntityTypeConfiguration<Server>
         e.HasMany(s => s.Tags).WithOne().HasForeignKey(t => t.ServerId).OnDelete(DeleteBehavior.Cascade);
         e.HasOne(s => s.Info).WithOne().HasForeignKey<ServerInfo>(i => i.ServerId).OnDelete(DeleteBehavior.Cascade);
         e.HasMany(s => s.Capabilities).WithOne().HasForeignKey(c => c.ServerId).OnDelete(DeleteBehavior.Cascade);
+
+        // Phase 2: optional agent (cannot delete an agent that still has servers) and health score.
+        e.HasOne(s => s.Agent).WithMany().HasForeignKey(s => s.AgentId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne(s => s.Health).WithOne().HasForeignKey<ServerHealth>(h => h.ServerId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { FolderTree, Search, Server } from "lucide-react";
+import { Database, FolderTree, Search, Server } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Input } from "@/components/ui/primitives";
@@ -52,7 +52,7 @@ export function GlobalSearch() {
       <Input
         ref={inputRef}
         value={text}
-        placeholder="Search servers, groups...  (Ctrl+K)"
+        placeholder="Search servers, databases, groups...  (Ctrl+K)"
         className="pl-8"
         aria-label="Global search"
         onChange={(e) => {
@@ -96,6 +96,8 @@ export function GlobalSearch() {
                   >
                     {hit.kind === "server" ? (
                       <Server className="size-4 text-muted-foreground" />
+                    ) : hit.kind === "database" ? (
+                      <Database className="size-4 text-muted-foreground" />
                     ) : (
                       <FolderTree className="size-4 text-muted-foreground" />
                     )}

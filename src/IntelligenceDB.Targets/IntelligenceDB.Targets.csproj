@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Everything that talks to MONITORED SQL Servers: connections, capability probe, collectors and the
+    collection engine. Used by the central Worker (cloud servers) and by the on-premises Agent.
+    It never touches the repository database.
+  -->
+  <PropertyGroup>
+    <RootNamespace>IntelligenceDB.Targets</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IntelligenceDB.Application\IntelligenceDB.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Dapper" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntelligenceDB.UnitTests" />
+    <InternalsVisibleTo Include="IntelligenceDB.IntegrationTests" />
+  </ItemGroup>
+</Project>

@@ -4,6 +4,8 @@ import { CURRENT_PHASE, modules } from "@/components/layout/modules";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { ComingInPhasePage } from "@/features/ComingInPhasePage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
+import { DatabaseDetailPage } from "@/features/databases/DatabaseDetailPage";
+import { DatabasesPage } from "@/features/databases/DatabasesPage";
 import { ServerDetailPage } from "@/features/servers/ServerDetailPage";
 import { ServersPage } from "@/features/servers/ServersPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
@@ -17,6 +19,8 @@ export function App() {
         <Route path="servers" element={<ServersPage />} />
         <Route path="servers/:id" element={<ServerDetailPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="databases" element={<DatabasesPage />} />
+        <Route path="databases/:id" element={<DatabaseDetailPage />} />
         {modules
           .filter((m) => m.phase > CURRENT_PHASE)
           .map((m) => (

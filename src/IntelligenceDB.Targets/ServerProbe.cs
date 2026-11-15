@@ -7,7 +7,7 @@ using IntelligenceDB.Domain.Servers;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 
-namespace IntelligenceDB.Infrastructure.Targets;
+namespace IntelligenceDB.Targets;
 
 /// <summary>
 /// Test Connection + capability detection. Connects with the monitoring login, reads version and

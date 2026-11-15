@@ -1,9 +1,12 @@
 using System.Security.Cryptography.X509Certificates;
 using IntelligenceDB.Application.Abstractions;
+using IntelligenceDB.Application.Monitoring;
+using IntelligenceDB.Infrastructure.Agents;
 using IntelligenceDB.Infrastructure.Audit;
+using IntelligenceDB.Infrastructure.Monitoring;
 using IntelligenceDB.Infrastructure.Repository;
 using IntelligenceDB.Infrastructure.Security;
-using IntelligenceDB.Infrastructure.Targets;
+using IntelligenceDB.Targets;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -52,9 +55,11 @@ public static class DependencyInjection
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<ISecretProtector, DataProtectionSecretProtector>();
-        services.AddSingleton<ITargetConnectionFactory, SqlTargetConnectionFactory>();
-        services.AddScoped<IServerProbe, ServerProbe>();
+        services.AddTargets();
         services.AddScoped<IAuditWriter, AuditWriter>();
+        services.AddScoped<IAgentProbeDispatcher, AgentProbeDispatcher>();
+        services.AddScoped<RetentionService>();
+        services.Configure<MonitoringOptions>(configuration.GetSection(MonitoringOptions.SectionName));
         return services;
     }
 

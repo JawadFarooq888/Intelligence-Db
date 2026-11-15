@@ -27,7 +27,10 @@ internal static class ServerMapper
         s.LastError,
         s.Info is null ? null : VersionNames.Describe(s.Info.EngineEdition, s.Info.MajorVersion, s.Info.ProductLevel, s.Info.ProductUpdateLevel),
         s.Info?.Edition,
-        s.AdminCredentialId is not null);
+        s.AdminCredentialId is not null,
+        s.AgentId,
+        s.Agent?.Name,
+        s.Health?.Score);
 
     public static ServerDetailDto ToDetail(Server s) => new(
         ToSummary(s),

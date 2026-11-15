@@ -1,4 +1,4 @@
-namespace IntelligenceDB.Infrastructure.Targets;
+namespace IntelligenceDB.Targets;
 
 /// <summary>
 /// T-SQL used by the connection test / capability detection. Every query is tiny, touches only

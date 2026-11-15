@@ -2,7 +2,10 @@
   <Folder Name="/src/">
     <Project Path="src/IntelligenceDB.Domain/IntelligenceDB.Domain.csproj" />
     <Project Path="src/IntelligenceDB.Application/IntelligenceDB.Application.csproj" />
+    <Project Path="src/IntelligenceDB.Targets/IntelligenceDB.Targets.csproj" />
     <Project Path="src/IntelligenceDB.Infrastructure/IntelligenceDB.Infrastructure.csproj" />
+    <Project Path="src/IntelligenceDB.Worker/IntelligenceDB.Worker.csproj" />
+    <Project Path="src/IntelligenceDB.Agent/IntelligenceDB.Agent.csproj" />
     <Project Path="src/IntelligenceDB.Api/IntelligenceDB.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">
