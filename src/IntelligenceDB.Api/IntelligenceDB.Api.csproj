@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>IntelligenceDB.Api</RootNamespace>
+    <UserSecretsId>intelligencedb-api</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IntelligenceDB.Infrastructure\IntelligenceDB.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.MSSqlServer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Login scripts are served to the UI so users can copy them (Server page → Login scripts). -->
+    <EmbeddedResource Include="..\..\sql\monitoring-login\*.sql" LogicalName="monitoring-login/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\sql\admin-login\*.sql" LogicalName="admin-login/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntelligenceDB.IntegrationTests" />
+  </ItemGroup>
+</Project>

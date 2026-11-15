@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: |
+          dotnet tool restore
+          dotnet restore IntelligenceDB.slnx
+
+      # Warnings fail the build here (CI=true -> TreatWarningsAsErrors, see Directory.Build.props).
+      - name: Build
+        run: dotnet build IntelligenceDB.slnx -c Release --no-restore
+
+      - name: Check the EF model matches the committed migrations
+        if: hashFiles('src/IntelligenceDB.Infrastructure/Repository/Migrations/*.cs') != ''
+        run: >
+          dotnet ef migrations has-pending-model-changes
+          --project src/IntelligenceDB.Infrastructure
+          --startup-project src/IntelligenceDB.Api
+          --no-build --configuration Release
+
+      # Integration tests start a SQL Server 2022 container with Testcontainers (Docker is available on the runner).
+      - name: Test
+        run: dotnet test IntelligenceDB.slnx -c Release --no-build --verbosity normal
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/IntelligenceDB.Web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/IntelligenceDB.Web/package-lock.json
+      - run: npm ci
+      - run: npm run build

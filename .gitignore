@@ -1,0 +1,16 @@
+bin/
+obj/
+*.user
+.vs/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+node_modules/
+dist/
+logs/
+*.log
+.npm-cache/
+src/IntelligenceDB.Api/wwwroot/
+TestResults/
+.env
+appsettings.Local.json

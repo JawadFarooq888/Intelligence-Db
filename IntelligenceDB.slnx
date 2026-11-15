@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IntelligenceDB.Domain/IntelligenceDB.Domain.csproj" />
+    <Project Path="src/IntelligenceDB.Application/IntelligenceDB.Application.csproj" />
+    <Project Path="src/IntelligenceDB.Infrastructure/IntelligenceDB.Infrastructure.csproj" />
+    <Project Path="src/IntelligenceDB.Api/IntelligenceDB.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IntelligenceDB.UnitTests/IntelligenceDB.UnitTests.csproj" />
+    <Project Path="tests/IntelligenceDB.IntegrationTests/IntelligenceDB.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

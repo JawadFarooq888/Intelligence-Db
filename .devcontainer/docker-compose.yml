@@ -1,0 +1,36 @@
+# Development environment for GitHub Codespaces / VS Code Dev Containers.
+# - "app": the workspace (.NET 10 SDK + Node 22 are added by devcontainer features)
+# - "sql": SQL Server 2022 Developer edition. It holds the repository database (IntelligenceDB_Repo)
+#          AND doubles as the first monitored server (host "sql", port 1433). SQL Agent is enabled.
+#
+# The passwords below are for this throw-away dev container only. Never reuse them anywhere else.
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/base:noble
+    command: sleep infinity
+    volumes:
+      - ../..:/workspaces:cached
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Repository: "Server=sql,1433;Database=IntelligenceDB_Repo;User Id=sa;Password=IntelliDb!Dev2026;Encrypt=True;TrustServerCertificate=True"
+      IDB_REPO_CONNECTION: "Server=sql,1433;Database=IntelligenceDB_Repo;User Id=sa;Password=IntelliDb!Dev2026;Encrypt=True;TrustServerCertificate=True"
+      IDB_TEST_SQL_CONNECTION: "Server=sql,1433;Database=master;User Id=sa;Password=IntelliDb!Dev2026;Encrypt=True;TrustServerCertificate=True"
+      Jwt__SigningKey: "dev-only-signing-key-0123456789-abcdefghijklmnopqrstuvwxyz"
+      Bootstrap__AdminEmail: "admin@intelligencedb.local"
+      Bootstrap__AdminPassword: "Admin!Dev2026pass"
+    depends_on:
+      - sql
+
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "IntelliDb!Dev2026"
+      MSSQL_AGENT_ENABLED: "true"
+    volumes:
+      - sqldata:/var/opt/mssql
+
+volumes:
+  sqldata:

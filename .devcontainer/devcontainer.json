@@ -1,0 +1,30 @@
+{
+  "name": "IntelligenceDB",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "shutdownAction": "stopCompose",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": { "version": "10.0" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb"
+  },
+  "forwardPorts": [5173, 5080],
+  "portsAttributes": {
+    "5173": { "label": "IntelligenceDB Web", "onAutoForward": "openBrowser" },
+    "5080": { "label": "IntelligenceDB API", "onAutoForward": "silent" }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-mssql.mssql",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  }
+}
