@@ -122,7 +122,7 @@ public sealed class ServerProbeTests(SqlServerFixture sql)
         result.Success.ShouldBeFalse();
         result.Status.ShouldBe(ConnectionStatus.AuthFailed);
         result.Error!.ShouldContain("Login failed");
-        result.Error.ShouldNotContain("definitely-wrong");
+        result.Error!.ShouldNotContain("definitely-wrong");
     }
 
     [Fact]
