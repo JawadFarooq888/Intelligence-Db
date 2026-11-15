@@ -75,6 +75,7 @@ jobs:
             exit 0
           fi
           dotnet tool restore
+          dotnet restore IntelligenceDB.slnx
           dotnet ef migrations add InitialCreate \
             --project src/IntelligenceDB.Infrastructure \
             --startup-project src/IntelligenceDB.Api \
@@ -114,6 +115,7 @@ jobs:
         shell: bash
         run: |
           dotnet tool restore
+          dotnet restore IntelligenceDB.slnx
           if ! ls src/IntelligenceDB.Infrastructure/Repository/Migrations/*_InitialCreate.cs >/dev/null 2>&1; then
             dotnet ef migrations add InitialCreate --project src/IntelligenceDB.Infrastructure \
               --startup-project src/IntelligenceDB.Api --output-dir Repository/Migrations
@@ -139,7 +141,7 @@ jobs:
           }
       - name: API log
         if: always()
-        run: tail -100 api.log
+        run: tail -100 api.log || true
 
   web:
     runs-on: ubuntu-latest
