@@ -160,6 +160,46 @@ jobs:
           path: out/agent
           retention-days: 30
 
+  # Builds the Docker images and runs the production compose stack (Caddy -> API, Worker, SQL Server).
+  docker:
+    needs: backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Start the stack
+        working-directory: deploy
+        run: |
+          cat > .env <<'EOF'
+          DOMAIN=:80
+          ADMIN_EMAIL=admin@docker.local
+          ADMIN_PASSWORD=Admin!Docker2026
+          SQL_SA_PASSWORD=Sql!Docker2026pass
+          JWT_SIGNING_KEY=ci-docker-signing-key-0123456789-abcdefghijklmnop
+          EOF
+          docker compose up -d --build
+      - name: Smoke test through Caddy
+        shell: bash
+        run: |
+          set -e
+          for i in $(seq 1 60); do curl -fs http://localhost/health >/dev/null && break; sleep 5; done
+          curl -fs http://localhost/health
+          curl -fs http://localhost/ | grep -q '<div id="root">'   # web app served by the API
+          H=(-H "Content-Type: application/json" -H "X-Requested-With: IntelligenceDB")
+          TOKEN=$(curl -fs "${H[@]}" -X POST http://localhost/api/auth/login -d '{"email":"admin@docker.local","password":"Admin!Docker2026"}' | jq -r '.session.accessToken')
+          S=$(curl -fs "${H[@]}" -H "Authorization: Bearer $TOKEN" -X POST http://localhost/api/servers -d '{"displayName":"REPO-SQL","host":"sql","port":1433,"declaredPlatform":"OnPremises","trustServerCertificate":true,"monitoring":{"authType":"SqlLogin","userName":"sa","secret":"Sql!Docker2026pass"}}')
+          echo "$S" | jq -e '.server.lastStatus == "Online"' >/dev/null || { echo "::error::server not online: $S"; exit 1; }
+          ID=$(echo "$S" | jq -r '.server.id')
+          for i in $(seq 1 30); do
+            OV=$(curl -fs -H "Authorization: Bearer $TOKEN" http://localhost/api/servers/$ID/overview)
+            echo "$OV" | jq -e '.health != null and .databases.total > 0' >/dev/null && { echo "Docker stack OK: health $(echo "$OV" | jq .health.score)"; exit 0; }
+            sleep 5
+          done
+          echo "::error::worker did not collect inside Docker"; exit 1
+      - name: Container logs
+        if: always()
+        working-directory: deploy
+        run: docker compose logs --tail 60
+
   web:
     runs-on: ubuntu-latest
     defaults:

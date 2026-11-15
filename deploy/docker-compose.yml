@@ -1,0 +1,87 @@
+# IntelligenceDB on one server (e.g. AWS EC2) with automatic HTTPS.
+#
+#   cd deploy
+#   cp .env.example .env      # then edit .env
+#   docker compose up -d --build
+#
+# Services:
+#   caddy  - HTTPS (free Let's Encrypt certificate for DOMAIN) -> api
+#   api    - portal (web + REST API + agent endpoints)
+#   worker - collector for servers the portal reaches directly
+#   sql    - SQL Server for the repository database (IntelligenceDB_Repo). Not reachable from outside.
+#
+# To use Amazon RDS (or any other SQL Server) for the repository instead of the "sql" container:
+# set REPO_CONNECTION in .env and start only:  docker compose up -d --build api worker caddy
+
+name: intelligencedb
+
+x-repo: &repo-connection
+  ConnectionStrings__Repository: ${REPO_CONNECTION:-Server=sql,1433;Database=IntelligenceDB_Repo;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True}
+
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      # Express is free for production use (10 GB per database - plenty for the repository).
+      MSSQL_PID: ${MSSQL_PID:-Express}
+      MSSQL_SA_PASSWORD: ${SQL_SA_PASSWORD:?Set SQL_SA_PASSWORD in .env}
+      MSSQL_MEMORY_LIMIT_MB: ${MSSQL_MEMORY_LIMIT_MB:-2048}
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *repo-connection
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env}
+      Bootstrap__AdminEmail: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      Bootstrap__AdminPassword: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      # Caddy terminates HTTPS: trust its X-Forwarded-* headers (real client IP and https scheme).
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+    volumes:
+      - apilogs:/app/logs
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/worker.Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *repo-connection
+      Worker__MaxParallelServers: ${WORKER_PARALLEL:-16}
+    volumes:
+      - workerlogs:/app/logs
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # A real domain (e.g. monitor.example.com) gets automatic HTTPS. ":80" = plain HTTP for testing only.
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  sqldata:
+  apilogs:
+  workerlogs:
+  caddy_data:
+  caddy_config:

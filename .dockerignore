@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/logs/
+.git/
+.vs/
+.vscode/
+.devcontainer/
+.github/
+TestResults/
+tests/
+deploy/.env
+.local-jwt-key
+*.user
