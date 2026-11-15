@@ -116,7 +116,11 @@ npm run dev        # open http://localhost:5173
 If the API login may not create databases, run [sql/repository/00-create-database.sql](sql/repository/00-create-database.sql)
 first (it creates the database and a dedicated `IntelligenceDB_App` login).
 
-Docker Compose for production and the Windows / IIS guide are delivered in Phase 7.
+**Windows, one command:** `powershell -ExecutionPolicy Bypass -File scripts\run-local.ps1 -SqlServer "SERVERNAME"`
+(needs the .NET 10 SDK and Node.js; opens the portal at http://localhost:5173).
+
+**Production on a server (AWS EC2 or any Linux VM with Docker):** see [docs/DEPLOY-AWS.md](docs/DEPLOY-AWS.md).
+`deploy/docker-compose.yml` runs Caddy (automatic HTTPS), the portal, the Worker and SQL Server Express.
 
 ---
 
