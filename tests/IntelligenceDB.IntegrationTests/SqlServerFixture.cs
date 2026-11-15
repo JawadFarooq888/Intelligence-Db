@@ -41,6 +41,24 @@ public sealed class SqlServerFixture : IAsyncLifetime
 
     public SqlConnectionStringBuilder Builder => new(ConnectionString);
 
+    /// <summary>
+    /// Drops a test login. Pooled connections keep the login's session open, so the pools are
+    /// cleared and any remaining sessions of that login are ended first.
+    /// </summary>
+    public async Task DropLoginAsync(string login, bool dropMsdbUser = false)
+    {
+        SqlConnection.ClearAllPools();
+        var msdb = dropMsdbUser ? $"EXEC (N'USE msdb; DROP USER IF EXISTS [{login}];');" : string.Empty;
+        await ExecuteAsync($"""
+            DECLARE @kill nvarchar(max) = N'';
+            SELECT @kill += N'KILL ' + CAST(session_id AS nvarchar(10)) + N';'
+            FROM sys.dm_exec_sessions WHERE login_name = N'{login}';
+            EXEC (@kill);
+            {msdb}
+            DROP LOGIN [{login}];
+            """);
+    }
+
     public async Task ExecuteAsync(string sql)
     {
         await using var conn = new SqlConnection(ConnectionString);

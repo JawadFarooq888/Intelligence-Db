@@ -80,7 +80,7 @@ public sealed class ServerProbeTests(SqlServerFixture sql)
         }
         finally
         {
-            await sql.ExecuteAsync($"DROP LOGIN [{login}];");
+            await sql.DropLoginAsync(login);
         }
     }
 
@@ -110,7 +110,7 @@ public sealed class ServerProbeTests(SqlServerFixture sql)
         }
         finally
         {
-            await sql.ExecuteAsync($"EXEC ('USE msdb; DROP USER IF EXISTS [{login}];'); DROP LOGIN [{login}];");
+            await sql.DropLoginAsync(login, dropMsdbUser: true);
         }
     }
 
