@@ -160,7 +160,8 @@ jobs:
           path: out/agent
           retention-days: 30
 
-  web:    runs-on: ubuntu-latest
+  web:
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: src/IntelligenceDB.Web
