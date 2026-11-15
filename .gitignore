@@ -14,3 +14,4 @@ src/IntelligenceDB.Api/wwwroot/
 TestResults/
 .env
 appsettings.Local.json
+.local-jwt-key
