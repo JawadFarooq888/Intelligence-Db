@@ -8,20 +8,33 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
 
+      # Each step copies error / NuGet warning lines into GitHub annotations so they are
+      # visible on the run summary page.
       - name: Restore
+        shell: bash
         run: |
-          dotnet tool restore
-          dotnet restore IntelligenceDB.slnx
+          set -o pipefail
+          dotnet tool restore 2>&1 | tee restore.log
+          dotnet restore IntelligenceDB.slnx 2>&1 | tee -a restore.log || {
+            grep -E "error|warn" restore.log | sort -u | head -50 | sed 's/^/::error::/'
+            exit 1
+          }
 
       # Warnings fail the build here (CI=true -> TreatWarningsAsErrors, see Directory.Build.props).
       - name: Build
-        run: dotnet build IntelligenceDB.slnx -c Release --no-restore
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet build IntelligenceDB.slnx -c Release --no-restore 2>&1 | tee build.log || {
+            grep -E ": (error|warning) " build.log | sort -u | head -80 | sed 's/^/::error::/'
+            exit 1
+          }
 
       - name: Check the EF model matches the committed migrations
         if: hashFiles('src/IntelligenceDB.Infrastructure/Repository/Migrations/*.cs') != ''
@@ -33,7 +46,13 @@ jobs:
 
       # Integration tests start a SQL Server 2022 container with Testcontainers (Docker is available on the runner).
       - name: Test
-        run: dotnet test IntelligenceDB.slnx -c Release --no-build --verbosity normal
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet test IntelligenceDB.slnx -c Release --no-build --logger "console;verbosity=normal" 2>&1 | tee test.log || {
+            grep -E "Failed |Error Message|Assert|Exception|error" test.log | sort -u | head -80 | sed 's/^/::error::/'
+            exit 1
+          }
 
   web:
     runs-on: ubuntu-latest
@@ -41,8 +60,8 @@ jobs:
       run:
         working-directory: src/IntelligenceDB.Web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
