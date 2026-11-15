@@ -32,13 +32,8 @@ server to monitor.
    |---|---|
    | `admin@intelligencedb.local` | `Admin!Dev2026pass` |
 
-6. **Commit the generated migration** (only the first time) so it is not re-created:
-
-   ```bash
-   git add src/IntelligenceDB.Infrastructure/Repository/Migrations
-   git commit -m "Add initial repository migration"
-   git push
-   ```
+The repository database migration is already committed (`src/IntelligenceDB.Infrastructure/Repository/Migrations`);
+the API applies it automatically on start.
 
 ### Pushing to GitHub
 
@@ -82,7 +77,14 @@ dotnet test IntelligenceDB.slnx
 - **Integration tests** connect to a real SQL Server: in the Codespace they use the `sql` container
   (`IDB_TEST_SQL_CONNECTION`); elsewhere they start a SQL Server 2022 container with Testcontainers (needs Docker).
 
-GitHub Actions (`.github/workflows/ci.yml`) builds with **warnings as errors**, runs all tests and builds the web app on every push.
+GitHub Actions (`.github/workflows/ci.yml`) on every push:
+
+- builds with **warnings as errors** (NuGet vulnerability warnings included),
+- runs unit + integration tests,
+- checks the EF model matches the committed migrations,
+- starts the real API against SQL Server 2022 and runs [scripts/e2e-smoke.sh](scripts/e2e-smoke.sh)
+  (sign-in, roles, server add/test/edit/delete, capability detection, secrets never returned, group scoping),
+- builds the web app.
 
 ---
 
@@ -98,9 +100,9 @@ $env:Jwt__SigningKey = "<random text, at least 32 characters>"
 $env:Bootstrap__AdminEmail = "you@example.com"
 $env:Bootstrap__AdminPassword = "<12+ chars, upper, lower, digit, symbol>"
 
-# 2. Tools, packages and (first time only) the initial migration
+# 2. Tools and packages
 dotnet tool restore
-dotnet ef migrations add InitialCreate --project src/IntelligenceDB.Infrastructure --startup-project src/IntelligenceDB.Api --output-dir Repository/Migrations
+dotnet restore IntelligenceDB.slnx
 
 # 3. API (creates the database and tables on first start)
 dotnet run --project src/IntelligenceDB.Api --launch-profile http
