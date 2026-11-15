@@ -22,6 +22,107 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("IntelligenceDB.Domain.Agents.Agent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("KeyPrefix")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("LastIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("LastSeenUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("MachineName")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Agents", "inv");
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Agents.AgentCommand", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("AgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime?>("DeliveredUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("ExpiresUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<byte[]>("ProtectedPayload")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId", "Status");
+
+                    b.ToTable("AgentCommands", "ops");
+                });
+
             modelBuilder.Entity("IntelligenceDB.Domain.Audit.AuditEntry", b =>
                 {
                     b.Property<long>("Id")
@@ -89,6 +190,352 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
                     b.ToTable("AuditLog", "audit");
                 });
 
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.BackupRecord", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BackupType")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nchar(1)")
+                        .IsFixedLength();
+
+                    b.Property<long?>("CompressedBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DatabaseName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int?>("DeviceType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FinishUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<bool>("IsCopyOnly")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PhysicalDevice")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<string>("RecoveryModel")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SourceBackupSetId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("StartUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ServerId", "SourceBackupSetId")
+                        .IsUnique();
+
+                    b.HasIndex("ServerId", "DatabaseName", "FinishUtc");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("ServerId", "DatabaseName", "FinishUtc"));
+
+                    b.ToTable("Backups", "mon");
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.CollectionRun", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Collector")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("StartedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ServerId", "StartedUtc");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("ServerId", "StartedUtc"));
+
+                    b.ToTable("CollectionRuns", "mon");
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.DatabaseSizeSample", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CollectedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<double>("DataSizeMb")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("DataUsedMb")
+                        .HasColumnType("float");
+
+                    b.Property<int>("DatabaseId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("LogSizeMb")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("LogUsedMb")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("DatabaseId", "CollectedUtc");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("DatabaseId", "CollectedUtc"));
+
+                    b.ToTable("DatabaseSizes", "mon");
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.FileIoStat", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("BytesRead")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("BytesWritten")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CollectedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("DatabaseName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("FileId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IntervalSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<long>("ReadStallMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Reads")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("WriteStallMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Writes")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ServerId", "CollectedUtc");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("ServerId", "CollectedUtc"));
+
+                    b.ToTable("FileIoStats", "mon");
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.ServerMetric", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<double?>("BatchRequestsPerSec")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("BlockedSessions")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CollectedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<int?>("MemoryGrantsPending")
+                        .HasColumnType("int");
+
+                    b.Property<double?>("OtherCpuPct")
+                        .HasColumnType("float");
+
+                    b.Property<long?>("PageLifeExpectancy")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<double?>("SqlCpuPct")
+                        .HasColumnType("float");
+
+                    b.Property<long?>("TargetServerMemoryMb")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("TotalServerMemoryMb")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("UserConnections")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ServerId", "CollectedUtc");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("ServerId", "CollectedUtc"));
+
+                    b.ToTable("ServerMetrics", "mon", t =>
+                        {
+                            t.HasComment("Server performance samples");
+                        });
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.VolumeStat", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CollectedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long>("FreeMb")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("MountPoint")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("TotalMb")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ServerId", "CollectedUtc");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("ServerId", "CollectedUtc"));
+
+                    b.ToTable("VolumeStats", "mon");
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.WaitStat", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CollectedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<int>("IntervalSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("SignalWaitMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("WaitTimeMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("WaitType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<long>("WaitingTasks")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ServerId", "CollectedUtc");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("ServerId", "CollectedUtc"));
+
+                    b.ToTable("WaitStats", "mon");
+                });
+
             modelBuilder.Entity("IntelligenceDB.Domain.Servers.Credential", b =>
                 {
                     b.Property<int>("Id")
@@ -131,6 +578,155 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
                     b.ToTable("Credentials", "inv");
                 });
 
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.Database", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompatibilityLevel")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CreateDateUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<double?>("DataSizeMb")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("DataUsedMb")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("FirstSeenUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<bool>("IsAutoCloseOn")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsAutoShrinkOn")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDropped")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastDiffBackupUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime?>("LastFullBackupUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime?>("LastGoodCheckDbUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime?>("LastLogBackupUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("LastSeenUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("LogReuseWait")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<double?>("LogSizeMb")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("LogUsedMb")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Owner")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("RecoveryModel")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SourceDatabaseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int?>("VlfCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServerId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Databases", "inv");
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.DatabaseFile", b =>
+                {
+                    b.Property<int>("DatabaseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FileId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("GrowthValue")
+                        .HasColumnType("float");
+
+                    b.Property<bool>("IsPercentGrowth")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LogicalName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<double?>("MaxSizeMb")
+                        .HasColumnType("float");
+
+                    b.Property<string>("PhysicalName")
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<double>("SizeMb")
+                        .HasColumnType("float");
+
+                    b.Property<string>("TypeDesc")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<double?>("UsedMb")
+                        .HasColumnType("float");
+
+                    b.Property<string>("VolumeMountPoint")
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.HasKey("DatabaseId", "FileId");
+
+                    b.ToTable("DatabaseFiles", "inv");
+                });
+
             modelBuilder.Entity("IntelligenceDB.Domain.Servers.Server", b =>
                 {
                     b.Property<int>("Id")
@@ -141,6 +737,9 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
 
                     b.Property<int?>("AdminCredentialId")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("AgentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("CollectionIntervalSeconds")
                         .HasColumnType("int");
@@ -218,6 +817,8 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
 
                     b.HasIndex("AdminCredentialId");
 
+                    b.HasIndex("AgentId");
+
                     b.HasIndex("DisplayName")
                         .IsUnique();
 
@@ -257,6 +858,46 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
                     b.ToTable("ServerCapabilities", "inv");
                 });
 
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.ServerConfigSetting", b =>
+                {
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("CollectedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsAdvanced")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDynamic")
+                        .HasColumnType("bit");
+
+                    b.Property<long>("Maximum")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Minimum")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Value")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ValueInUse")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ServerId", "Name");
+
+                    b.ToTable("ServerConfig", "inv");
+                });
+
             modelBuilder.Entity("IntelligenceDB.Domain.Servers.ServerGroup", b =>
                 {
                     b.Property<int>("Id")
@@ -280,6 +921,27 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
                         .IsUnique();
 
                     b.ToTable("ServerGroups", "inv");
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.ServerHealth", b =>
+                {
+                    b.Property<int>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BreakdownJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CalculatedUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.HasKey("ServerId");
+
+                    b.ToTable("ServerHealth", "hc");
                 });
 
             modelBuilder.Entity("IntelligenceDB.Domain.Servers.ServerInfo", b =>
@@ -690,11 +1352,106 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
                     b.ToTable("UserTokens", "auth");
                 });
 
+            modelBuilder.Entity("IntelligenceDB.Domain.Agents.AgentCommand", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Agents.Agent", null)
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.BackupRecord", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.CollectionRun", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.DatabaseSizeSample", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Database", null)
+                        .WithMany()
+                        .HasForeignKey("DatabaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.FileIoStat", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.ServerMetric", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.VolumeStat", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Monitoring.WaitStat", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.Database", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.DatabaseFile", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Database", null)
+                        .WithMany("Files")
+                        .HasForeignKey("DatabaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("IntelligenceDB.Domain.Servers.Server", b =>
                 {
                     b.HasOne("IntelligenceDB.Domain.Servers.Credential", "AdminCredential")
                         .WithMany()
                         .HasForeignKey("AdminCredentialId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IntelligenceDB.Domain.Agents.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("IntelligenceDB.Domain.Servers.ServerGroup", "Group")
@@ -710,6 +1467,8 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
 
                     b.Navigation("AdminCredential");
 
+                    b.Navigation("Agent");
+
                     b.Navigation("Group");
 
                     b.Navigation("MonitoringCredential");
@@ -720,6 +1479,24 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
                     b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
                         .WithMany("Capabilities")
                         .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.ServerConfigSetting", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.ServerHealth", b =>
+                {
+                    b.HasOne("IntelligenceDB.Domain.Servers.Server", null)
+                        .WithOne("Health")
+                        .HasForeignKey("IntelligenceDB.Domain.Servers.ServerHealth", "ServerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -817,9 +1594,16 @@ namespace IntelligenceDB.Infrastructure.Repository.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("IntelligenceDB.Domain.Servers.Database", b =>
+                {
+                    b.Navigation("Files");
+                });
+
             modelBuilder.Entity("IntelligenceDB.Domain.Servers.Server", b =>
                 {
                     b.Navigation("Capabilities");
+
+                    b.Navigation("Health");
 
                     b.Navigation("Info");
 
